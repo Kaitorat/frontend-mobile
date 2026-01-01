@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 
+ * Variables CSS solo para web
+ * En móvil, NativeWind usa los colores directos de tailwind.config.js
+ */
+:root {
+  --radius: 0.25rem;
+}
+
+.dark {
+  color-scheme: dark;
+}
