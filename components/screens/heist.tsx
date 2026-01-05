@@ -1,5 +1,4 @@
-import { View, Platform, Pressable } from 'react-native';
-import { useState } from 'react';
+import { View, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text as UIText } from '@/components/ui/text';
@@ -9,6 +8,7 @@ import { ModeSwitcher } from '@/components/ui/mode-switcher';
 import { MissionCard } from '@/components/ui/mission-card';
 import { P5Background } from '@/components/p5-background';
 import { COLORS } from '@/lib/colors';
+import { usePomodoroTimer } from '@/hooks/usePomodoroTimer';
 import {
   Play,
   Pause,
@@ -18,53 +18,39 @@ import {
   Menu,
 } from 'lucide-react-native';
 
-type TimerMode = 'Pomodoro' | 'Short Break' | 'Long Break';
-
 type HeistScreenProps = {
   onOpenMenu: () => void;
 };
 
 export default function HeistScreen({ onOpenMenu }: HeistScreenProps) {
-  // TODO: Reemplazar con estado real del timer (useState o Zustand)
-  const [timerMode, setTimerMode] = useState<TimerMode>('Pomodoro');
-  const [isRunning, setIsRunning] = useState(false);
-  const [progress, setProgress] = useState(65); // Placeholder: 0-100
+  const {
+    minutes,
+    seconds,
+    isRunning,
+    timerMode,
+    progress,
+    isLoading,
+    isInitialized,
+    error,
+    toggleTimer,
+    reset,
+    skip,
+    setTimerMode,
+  } = usePomodoroTimer();
 
-  // TODO: Agregar lógica de countdown
-  // TODO: Integrar con PocketBase para guardar sesiones
-  // TODO: Agregar notificaciones cuando termine el timer
-
-  // Valores hardcodeados para visualización
-  const getTimerValues = () => {
-    switch (timerMode) {
-      case 'Pomodoro':
-        return { minutes: 25, seconds: 0 };
-      case 'Short Break':
-        return { minutes: 5, seconds: 0 };
-      case 'Long Break':
-        return { minutes: 15, seconds: 0 };
-    }
-  };
-
-  const { minutes, seconds } = getTimerValues();
-
-  const handleStartPause = () => {
-    // TODO: Implementar lógica de start/pause
-    console.log('Start/Pause clicked');
-    setIsRunning(!isRunning);
-  };
-
-  const handleReset = () => {
-    // TODO: Implementar lógica de reset
-    console.log('Reset clicked');
-    setIsRunning(false);
-    setProgress(100);
-  };
-
-  const handleSkip = () => {
-    // TODO: Implementar lógica de skip
-    console.log('Skip clicked');
-  };
+  // Loading state
+  if (isLoading || !isInitialized) {
+    return (
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <UIText className="text-foreground mt-4" style={{ fontFamily: 'Anton' }}>
+          {error ? `Error: ${error}` : 'INITIALIZING...'}
+        </UIText>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 relative overflow-hidden" style={{ backgroundColor: COLORS.background }}>
@@ -73,7 +59,7 @@ export default function HeistScreen({ onOpenMenu }: HeistScreenProps) {
 
       {/* Swipe Indicator - Only on Mobile */}
       {Platform.OS !== 'web' && (
-        <View 
+        <View
           className="absolute left-0 top-1/2 z-30"
           style={{
             width: 4,
@@ -144,24 +130,21 @@ export default function HeistScreen({ onOpenMenu }: HeistScreenProps) {
               default: {}, // Sin skew en Android
             }),
           }}>
-          <View style={Platform.select({
-            web: { transform: [{ skewX: '6deg' }] as any },
-            default: {}, // Sin skew en Android
-          })}>
-            <Icon
-              as={Zap}
-              size={16}
-              color={isRunning ? COLORS.accent : COLORS.greyBackground}
-            />
+          <View
+            style={Platform.select({
+              web: { transform: [{ skewX: '6deg' }] as any },
+              default: {}, // Sin skew en Android
+            })}>
+            <Icon as={Zap} size={16} color={isRunning ? COLORS.accent : COLORS.greyBackground} />
           </View>
-          <View style={Platform.select({
-            web: { transform: [{ skewX: '6deg' }] as any },
-            default: {}, // Sin skew en Android
-          })}>
+          <View
+            style={Platform.select({
+              web: { transform: [{ skewX: '6deg' }] as any },
+              default: {}, // Sin skew en Android
+            })}>
             <UIText
-              className={`text-sm font-bold tracking-widest ${
-                isRunning ? 'text-foreground' : 'text-gray-400'
-              }`}
+              className={`text-sm font-bold tracking-widest ${isRunning ? 'text-foreground' : 'text-gray-400'
+                }`}
               style={{ fontFamily: 'Anton' }}>
               TARGET:{' '}
               <UIText className="text-accent" style={{ fontFamily: 'Anton' }}>
@@ -195,7 +178,7 @@ export default function HeistScreen({ onOpenMenu }: HeistScreenProps) {
             shadowRadius: 20,
             elevation: 10,
           }}
-          onPress={handleStartPause}>
+          onPress={toggleTimer}>
           <Icon
             as={isRunning ? Pause : Play}
             className={isRunning ? 'text-accent-foreground' : 'text-primary-foreground'}
@@ -210,21 +193,13 @@ export default function HeistScreen({ onOpenMenu }: HeistScreenProps) {
 
         {/* Secondary Actions */}
         <View className="flex-row justify-between gap-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onPress={handleReset}>
+          <Button variant="outline" size="sm" className="flex-1" onPress={reset}>
             <Icon as={RotateCcw} className="text-primary" size={18} />
             <UIText className="text-primary" style={{ fontFamily: 'Anton' }}>
               RESET
             </UIText>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onPress={handleSkip}>
+          <Button variant="outline" size="sm" className="flex-1" onPress={skip}>
             <Icon as={FastForward} className="text-primary" size={18} />
             <UIText className="text-primary" style={{ fontFamily: 'Anton' }}>
               SKIP

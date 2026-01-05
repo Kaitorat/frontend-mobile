@@ -2,26 +2,45 @@ import '../global.css';
 import { PortalHost } from '@rn-primitives/portal';
 import { Slot } from 'expo-router';
 import { useFonts, Anton_400Regular } from '@expo-google-fonts/anton';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { initializeAuth } from '@/lib/pocketbase';
 
 // Mantiene el Splash Screen visible mientras cargamos recursos
 SplashScreen.preventAutoHideAsync();
 
 export default function Layout() {
+  const [authReady, setAuthReady] = useState(false);
+
   // Cargamos la fuente y obtenemos un booleano (loaded)
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Anton: Anton_400Regular,
   });
 
+  // Inicializar autenticación de PocketBase
   useEffect(() => {
-    if (loaded || error) {
-      // Ocultamos el splash screen cuando la fuente está lista
+    async function init() {
+      try {
+        await initializeAuth();
+        console.log('[Layout] Auth initialized');
+      } catch (error) {
+        console.error('[Layout] Auth initialization failed:', error);
+      } finally {
+        setAuthReady(true);
+      }
+    }
+    init();
+  }, []);
+
+  // Ocultar splash cuando todo esté listo
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && authReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, error]);
+  }, [fontsLoaded, fontError, authReady]);
 
-  if (!loaded && !error) {
+  // Esperar a que todo esté listo
+  if ((!fontsLoaded && !fontError) || !authReady) {
     return null;
   }
 
